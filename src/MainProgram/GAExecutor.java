@@ -24,7 +24,7 @@ public class GAExecutor implements Runnable{
 	private Integer numInd;
 	
 	private Integer maxGenerations, maxFFcalls;
-	private Double acceptableDistance;
+	private Double acceptableDistance, neighboringDistance, neighboringPenalty, averageNeighboring;
 	
 	private Population population;
 
@@ -49,8 +49,8 @@ public class GAExecutor implements Runnable{
 
 	
 	public GAExecutor(Integer idExecute, PrinterThread printer, ArrayList<VariableDescription> variablesDesc,	Integer numInd, Integer max_generations, Double minCrossProbability, Double minMutationProbability, 
-			IFitnessFunction fitnessFunction, ISelectFunction selectFunction, ICrossFunction crossFunction, IMutationFunction mutationFunction, Double acceptableDistance, Integer maxFFcalls,
-			Double maxCrossProbability, Double maxMutationProbability, Double initialDinamicProbabilityModify, Double finalDinamicProbabilityModify) throws Exception {
+			IFitnessFunction fitnessFunction, ISelectFunction selectFunction, ICrossFunction crossFunction, IMutationFunction mutationFunction, Double acceptableDistance, Integer maxFFcalls, Double neighboringDistance,
+			Double neighboringPenalty, Double maxCrossProbability, Double maxMutationProbability, Double initialDinamicProbabilityModify, Double finalDinamicProbabilityModify) throws Exception {
 		
 		this.idExecute = idExecute;
 		this.printer = printer;
@@ -61,6 +61,10 @@ public class GAExecutor implements Runnable{
 		this.selectFunction = selectFunction;
 		this.crossFunction = crossFunction;
 		this.mutationFunction = mutationFunction;
+		
+		this.neighboringDistance = neighboringDistance;
+		this.neighboringPenalty = neighboringDistance;
+		this.averageNeighboring = 0.0;
 
 		this.minCrossProbability = minCrossProbability;
 		this.minMutationProbability = this.currentMutationProbability = minMutationProbability;
@@ -140,6 +144,10 @@ public class GAExecutor implements Runnable{
 				fitnessValues[update] = fitnessValueCalculate(population, update);
 			}
 			
+			//TODO - Print data before re-fitting?
+			//Re-fits the population, avoiding the neighboring problem
+			fitnessValues = reFittedFitnessValues(fitnessValues, population);
+			
 			//Recorver elitist
 			Integer idWorseInd = 0;	
 			Integer idBestIndAfterGeneration = 0;
@@ -173,7 +181,7 @@ public class GAExecutor implements Runnable{
 			updateProbabilityOperators(fitnessValues, idBestInd);
 			
 			//TODO - Print it?
-			System.out.println(countGeneration+" - "+minCrossProbability+" - "+minMutationProbability+" - "+countCallFF+" - "+fitnessOfBest+" - "+currentEuclideanDistance(population, idBestInd));
+			System.out.println(countGeneration+" - "+minCrossProbability+" - "+minMutationProbability+" - "+countCallFF+" - "+fitnessOfBest+" - "+currentEuclideanDistance(population, idBestInd)+" - "+averageNeighboring);
 			
 		}
 		//TODO - Print it?
@@ -237,6 +245,14 @@ public class GAExecutor implements Runnable{
 		}
 		System.out.println("currentCrossProbability: "+currentCrossProbability+" currentMutationProbability: "+currentMutationProbability);
 	}
+
+	private Double[] getVariablesOfIndividual(Population population, int idIndividual) {
+		Double variables[] = new Double[population.getVariablesDesc().size()];
+		for(int j= 0; j < population.getVariablesDesc().size(); j++){
+			variables[j] = population.getVaribleOfIndividual(idBestInd, j);
+		}
+		return variables;
+	}
 	
 	private Double euclideanDistanceCalculate(Double[] point_a, Double[] point_b) {
 		Double distance = 0.0;
@@ -247,12 +263,38 @@ public class GAExecutor implements Runnable{
 	}
 	
 	private Double currentEuclideanDistance(Population population, int idBestInd){		
-		Double variables[] = new Double[population.getVariablesDesc().size()];
-		
-		for(int j= 0; j < variables.length; j++){
-			variables[j] = population.getVaribleOfIndividual(idBestInd, j);
-		}
+		Double variables[] = getVariablesOfIndividual(population, idBestInd);
 		return euclideanDistanceCalculate(variables, fitnessFunction.getBestCaseVariables(variables.length));
+	}
+	
+	private Double[] reFittedFitnessValues(Double[] fitnessValues, Population population){
+		if(neighboringPenalty!=0.0){//only executes if there is a neighboring penalty
+			Double[][] distances = new Double[population.getNumInd()][population.getNumInd()];
+			Double[] newFitnessValues = new Double[fitnessValues.length];
+			int numOfNeighbors;
+			
+			for(int line=0; line<population.getNumInd(); line++){	//gets each individual
+				numOfNeighbors = 0;
+				for(int collumn=0; collumn<population.getNumInd(); collumn++){	//to compare with each other individual
+					if(line!=collumn){	//except the same
+						if(line<collumn){ //calculates the euclidean distance if it has not been done before between those two individuals
+							distances[line][collumn] = euclideanDistanceCalculate(getVariablesOfIndividual(population, line), getVariablesOfIndividual(population, collumn));	//calculates the distance and saves
+							distances[collumn][line] = distances[line][collumn];	//saves also in the inverse position of the relations matrix 
+						}
+						if(distances[line][collumn]<neighboringDistance){	//checks if the current distance saved in the distances matrix is the specified neighbouring distance
+							numOfNeighbors = numOfNeighbors + 1;
+						}
+					}
+				}	//after comparing the distance from the current individual to each other individual, computes the neigboring penalty. THE NEIGHBORING PENALTY MUST BE A FRACTION OF THE ORIGINAL FITNESS VALUE TO BE DECREASED - like a value between 0(0%) and 1(100%).
+				newFitnessValues[line] = fitnessValues[line] - (numOfNeighbors*neighboringPenalty)*fitnessValues[line];	//decreases an amount of fitness value relative to the current penalty. the fitness value may get negative, but the program is able to handle that.
+				averageNeighboring = (averageNeighboring+numOfNeighbors)/2;
+			}
+			
+			return newFitnessValues;
+			
+		} else {
+			return fitnessValues;
+		}
 	}
 
 	private void outputEvaluation(Population population, Double fitnessValues[], Integer idBestInd, Integer generation, boolean finish) {

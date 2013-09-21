@@ -34,7 +34,7 @@ public class Run {
 		ArrayList<Integer> numbersOfIndividuals = new ArrayList<Integer>();
 		ArrayList<Double> crossProbabilitys = new ArrayList<Double>(), mutationProbabilitys = new ArrayList<Double>();
 		
-		Double acceptableDistance = null;
+		Double acceptableDistance = null, neighboringDistance=null, neighboringPenalty=null;
 		Integer maxFitnessFunctionCalls = null, maxGeneration = null;
 		
 		Double maxCrossProbability = null, maxMutationProbability = null, initialDinamicProbabilityModify = null, finalDinamicProbabilityModify = null;
@@ -211,8 +211,20 @@ public class Run {
 				acceptableDistance = Double.parseDouble(props.getProperty("ad"));
 			}
 			
+		    // Defines the neighboring distance, or the distance for two individuals to be neighbors
+
+			if(!props.getProperty("nd").equals("")){
+				neighboringDistance = Double.parseDouble(props.getProperty("nd"));
+			}
+			
+		    // Defines the fraction of the fitness of an individual that should be deduced for each neighbor of the individual
+
+			if(!props.getProperty("np").equals("")){
+				neighboringPenalty = Double.parseDouble(props.getProperty("np"));
+			}
+			
 			String record = "idExecute;numInd;max_generations;acceptableDistance;maxFFcalls;crossProbability;mutationProbability;fitnessFunction;selectFunction;crossFunction;mutationFunction;"+
-				"generation;countCallFF;currentEuclideanDistance;mediaFitness;bestFitness;status;variables";
+				"generation;countCallFF;currentEuclideanDistance;averageNeighboring;mediaFitness;bestFitness;status;variables";
 			
 			//TODO - print it?
 		    System.out.println((new Date()).toString()+" --- Inicio --- ");
@@ -248,8 +260,8 @@ public class Run {
 									for(Double mutationProbability : mutationProbabilitys){
 										for(int idExecute = 0; idExecute < numExec; idExecute++){
 											executor.execute(new GAExecutor(idExecute, printer, variablesDescription, numbersOfIndividual, maxGeneration, crossProbability, mutationProbability, 
-												fitnessFunction, selectFunction, crossFunction, mutationFunction, acceptableDistance, maxFitnessFunctionCalls,
-												maxCrossProbability, maxMutationProbability, initialDinamicProbabilityModify, finalDinamicProbabilityModify));	
+												fitnessFunction, selectFunction, crossFunction, mutationFunction, acceptableDistance, maxFitnessFunctionCalls, neighboringDistance,
+												neighboringPenalty, maxCrossProbability, maxMutationProbability, initialDinamicProbabilityModify, finalDinamicProbabilityModify));	
 										}
 									}	
 								}	
