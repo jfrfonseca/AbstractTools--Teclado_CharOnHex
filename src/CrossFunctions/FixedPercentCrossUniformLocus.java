@@ -23,6 +23,7 @@ public class FixedPercentCrossUniformLocus implements ICrossFunction {
 						
 			Boolean locus = false;
 			for(int j = 0; j < origin.getNumBitsInd(); j++){
+				locus = (Math.random() < 0.5) ? true : false;
 				if(locus){
 					individualCross1[j] = individualSelect1[j];
 				}

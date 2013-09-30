@@ -1,21 +1,15 @@
 package SelectFunctions;
 
-import DataStructs.Population;
-
 public class StochasticUniversalSampling implements ISelectFunction {
-	public void selectPopulation(Population origin, Double[] valuesOfFitness) {
+	public Integer[] selectPopulation( Double[] valuesOfFitness) {
 		
-		Population populationSelected = new Population(origin.getNumInd(), origin.getVariablesDesc());
-		Double[] copyFitenssValues = valuesOfFitness.clone();
+		Integer[] listOfSelecteds = new Integer[valuesOfFitness.length];
 		
-		for(int i = 0; i < origin.getNumInd(); i++){
-			int selected = (int)Math.floor((Math.random()*(valuesOfFitness.length))%valuesOfFitness.length);
-			populationSelected.setIndividual(i, origin.getIndividual(selected)); 
-			//reference update
-			valuesOfFitness[i] = copyFitenssValues[selected];
+		for(int i = 0; i < valuesOfFitness.length; i++){
+			listOfSelecteds[i] = (int)Math.floor((Math.random()*(valuesOfFitness.length))%valuesOfFitness.length);
 		}
 		
-		origin.setBinaryMatrix(populationSelected.getBinaryMatrix());
+		return listOfSelecteds; 
 	}
 
 }

@@ -1,11 +1,10 @@
 package SelectFunctions;
 
-import DataStructs.Population;
-
 public class Roulette implements ISelectFunction {
-	public void selectPopulation(Population origin, Double[] valuesOfFitness) {
+	public Integer[] selectPopulation(Double[] valuesOfFitness) {
+
+		Integer[] listOfSelecteds = new Integer[valuesOfFitness.length];
 		
-		Population populationSelected = new Population(origin.getNumInd(), origin.getVariablesDesc());
 		Double fitnessTotal = 0.0;
 		
 		Double maxFitness = null;
@@ -20,8 +19,6 @@ public class Roulette implements ISelectFunction {
 				maxFitness = valuesOfFitness[i];
 			}
 		}
-		
-		Double[] copyFitenssValues = valuesOfFitness.clone();
 		//aux for translate if find1 negative values
 		Double[] auxFitnessValues = valuesOfFitness.clone();
 		
@@ -36,7 +33,6 @@ public class Roulette implements ISelectFunction {
 			}
 			else{
 				for(int i = 0; i < valuesOfFitness.length; i++){
-					//add (maxFitness/100) for the worse value have a percentage of total fitness
 					auxFitnessValues[i] *= -1;
 				}
 			}
@@ -47,21 +43,20 @@ public class Roulette implements ISelectFunction {
 		}
 		
 		Double roletteSelect, auxSelect;
-		for(int i = 0; i < populationSelected.getNumInd(); i++){
+		for(int i = 0; i < valuesOfFitness.length; i++){
 			
 			roletteSelect = Math.random()*fitnessTotal;
 			auxSelect = 0.0;
 			
-			for(int j = 0; j < auxFitnessValues.length && roletteSelect > auxSelect; j++){
+			for(int j = 0; j < valuesOfFitness.length && roletteSelect > auxSelect; j++){
 				auxSelect += auxFitnessValues[j];
 				if(roletteSelect <= auxSelect){
-					populationSelected.setIndividual(i, origin.getIndividual(j));
-					//reference update
-					valuesOfFitness[i] = copyFitenssValues[j];
+					listOfSelecteds[i] = j;
 				}
 			}
 		}
 		
-		origin.setBinaryMatrix(populationSelected.getBinaryMatrix());
+		
+		return listOfSelecteds;
 	}
 }
